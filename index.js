@@ -3,9 +3,12 @@ const dataSet = require('./dataSet.js');
 
 const brain = new Brain();
 brain.trainList(dataSet);
+
 const fieldToFind = 'nationality';
-const guess = brain.guess({
+const baseData = {
     hair: 'Brown',
     eyes: 'Blue',
-}, fieldToFind)
+};
+
+const guess = brain.guess(baseData, fieldToFind)
 console.log(fieldToFind, guess);
