@@ -3,48 +3,70 @@ class Brain {
         this.fields = new Set();
         this.data = new Map();
     }
-    addFieldSet(field, fieldValue, data) {
-        if (!this.data.has(field)) {
-            this.data.set(field, new Map());
-        }
-
-        if (!this.data.get(field).has(fieldValue)) {
-            this.data.get(field).set(fieldValue, new Map());
-        }
-
-        if (this.data.get(field).get(fieldValue).get(JSON.stringify(data))) {
-            this.data.get(field).get(fieldValue).get(JSON.stringify(data)).probability += 1;
-        } else {
-            this.data.get(field).get(fieldValue).set(JSON.stringify(data), {
+    setChild(children, child) {
+        const childId = JSON.stringify(child);
+        let childObject = children.get(childId);
+        if (!childObject) {
+            childObject = {
                 probability: 1,
-                properties: data,
-            });
+                data: child,
+            };
+            children.set(childId, childObject);
+        } else {
+            childObject.probability += 1;
         }
     }
-    train(item) {
-        const fields = Object.keys(item);
+    addData(fields, item, data, level = 0) {
+        level += 1;
+        if (level > fields.length) {
+            return;
+        }
         fields.forEach((field) => {
-            const dataToLearn = Object.assign({}, item);
-            const fieldValue = dataToLearn[field];
-            delete dataToLearn[field];
-            this.addFieldSet(field, fieldValue, dataToLearn);
+            const fieldValue = item[field];
+            let fieldBranch = data.get(field);
+            if (!fieldBranch) {
+                fieldBranch = {
+                    values: new Map(),
+                    children: new Map(),
+                };
+                data.set(field, fieldBranch);
+            }
+            this.setChild(fieldBranch.children, item);
+            let fieldBranchForValue = fieldBranch.values.get(fieldValue);
+            if (!fieldBranchForValue) {
+                fieldBranchForValue = new Map();
+                fieldBranch.values.set(fieldValue, fieldBranchForValue);
+            }
+            this.addData(fields, item, fieldBranchForValue, level);
         });
+    }
+    train(item) {
+        const fields = Object.keys(item).sort();
+        this.addData(fields, item, this.data);
     }
     trainList(dataSet) {
         dataSet.forEach((item) => this.train(item));
     }
-    guess(field = '', fieldValue = '') {
-        const fieldData = this.data.get(field);
-        if (!fieldData) {
-            return undefined;
+    findMostProbableData(dataSet) {
+        const dataArray = [...dataSet.values()].sort((a, b) => a.probability < b.probability);
+        return dataArray[0];
+    }
+    guessDeep(field, obj, layer) {
+        return layer.get(field).values.get(obj[field]);
+    }
+    guess(obj, whatFieldYouWant) {
+        let value;
+        try {
+            const fields = Object.keys(obj).sort();
+            let data = this.data;
+            for (let i = 0; i < fields.length; i += 1) {
+                data = this.guessDeep(fields[i], obj, data);
+            }
+            value = this.findMostProbableData(data.get(whatFieldYouWant).children)
+                .data[whatFieldYouWant];
+        } catch(e) {
         }
-        const fieldDataForValue = fieldData.get(fieldValue);
-        if (!fieldDataForValue) {
-            return undefined;
-        }
-        const list = [...fieldDataForValue.values()].sort((a, b) => a.probability < b.probability);
-        return list[0];
-
+        return value;
     }
 }
 

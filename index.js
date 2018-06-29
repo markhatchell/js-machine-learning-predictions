@@ -3,4 +3,9 @@ const dataSet = require('./dataSet.js');
 
 const brain = new Brain();
 brain.trainList(dataSet);
-console.log(brain.guess('month', 'July'));
+const fieldToFind = 'nationality';
+const guess = brain.guess({
+    hair: 'Brown',
+    eyes: 'Blue',
+}, fieldToFind)
+console.log(fieldToFind, guess);
